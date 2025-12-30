@@ -2,8 +2,6 @@ export type Difficulty = "easy" | "medium" | "hard";
 
 export type TestPhase = "idle" | "running" | "finished";
 
-export type TimerMode = "time" | "text";
-
 export interface Passage {
   id: string;
   text: string;

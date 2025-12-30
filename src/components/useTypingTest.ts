@@ -25,7 +25,10 @@ export function useTypingTest(difficulty: Difficulty, timerMode: TimerMode) {
     timeRemaining: timerMode === "time" ? 60 : null,
   });
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  //Usando tipos de navegador (pq es un challenge enfocado a front)
+  const intervalRef = useRef<number | null>(null); 
+  //Al usar eso, tmb hay que llamar a window.setTimeout y no solamente a setTimeout
 
   useEffect(() => {
     if (state.phase === "running" && state.timerMode === "time" && state.timeRemaining !== null) {
