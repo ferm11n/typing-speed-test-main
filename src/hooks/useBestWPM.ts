@@ -15,33 +15,17 @@ export function useBestWPM() {
     return raw ? JSON.parse(raw) : DEFAULT;
   });
 
-  const [feedback, setFeedback] = useState<{
-    isNewRecord: boolean;
-    isBaseline: boolean;
-  }>({ isNewRecord: false, isBaseline: false });
-
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(best));
   }, [best]);
 
   const updateBest = (difficulty: Difficulty, wpm: number) => {
-    const previousBest = best[difficulty];
-    const isNewRecord = wpm > previousBest && previousBest > 0;
-    const isBaseline = previousBest === 0;
-
     setBest((prev) =>
       wpm > prev[difficulty]
         ? { ...prev, [difficulty]: wpm }
         : prev
     );
-
-    setFeedback({ isNewRecord, isBaseline });
-
-    // Clear feedback after 5 seconds
-    setTimeout(() => {
-      setFeedback({ isNewRecord: false, isBaseline: false });
-    }, 5000);
   };
 
-  return { best, updateBest, feedback };
+  return { best, updateBest };
 }

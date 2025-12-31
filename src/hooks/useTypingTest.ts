@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { getRandomPassage } from "../utils/getRandomPassage";
-import type { Difficulty, TestPhase, TimerMode } from "../types/typing";
+import type { Difficulty, TestPhase } from "../types/typing";
 
 interface TypingState {
   phase: TestPhase;
@@ -9,11 +9,9 @@ interface TypingState {
   errors: Set<number>;
   startTime: number | null;
   endTime: number | null;
-  timerMode: TimerMode;
-  timeRemaining: number | null;
 }
 
-export function useTypingTest(difficulty: Difficulty, timerMode: TimerMode) {
+export function useTypingTest(difficulty: Difficulty) {
   const [state, setState] = useState<TypingState>({
     phase: "idle",
     passage: getRandomPassage(difficulty),
@@ -21,41 +19,7 @@ export function useTypingTest(difficulty: Difficulty, timerMode: TimerMode) {
     errors: new Set(),
     startTime: null,
     endTime: null,
-    timerMode,
-    timeRemaining: timerMode === "time" ? 60 : null,
   });
-
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (state.phase === "running" && state.timerMode === "time" && state.timeRemaining !== null) {
-      intervalRef.current = setInterval(() => {
-        setState((s: TypingState) => {
-          const newTimeRemaining = s.timeRemaining! - 1;
-          if (newTimeRemaining <= 0) {
-            return {
-              ...s,
-              phase: "finished",
-              endTime: Date.now(),
-              timeRemaining: 0,
-            };
-          }
-          return { ...s, timeRemaining: newTimeRemaining };
-        });
-      }, 1000);
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [state.phase, state.timerMode, state.timeRemaining]);
 
   const start = () => {
     setState({
@@ -65,8 +29,6 @@ export function useTypingTest(difficulty: Difficulty, timerMode: TimerMode) {
       errors: new Set(),
       startTime: Date.now(),
       endTime: null,
-      timerMode,
-      timeRemaining: timerMode === "time" ? 60 : null,
     });
   };
 
@@ -78,18 +40,20 @@ export function useTypingTest(difficulty: Difficulty, timerMode: TimerMode) {
       errors: new Set(),
       startTime: null,
       endTime: null,
-      timerMode,
-      timeRemaining: timerMode === "time" ? 60 : null,
     });
   };
 
   const handleKey = (key: string) => {
-    setState((s: TypingState) => {
+    setState((s) => {
       if (s.phase !== "running") return s;
 
       if (key === "Backspace") {
         if (s.currentIndex === 0) return s;
-        return { ...s, currentIndex: s.currentIndex - 1 };
+        const newIndex = s.currentIndex - 1;
+        const errors = new Set(s.errors);
+        // Eliminar el error de la posición anterior si existe
+        errors.delete(newIndex);
+        return { ...s, currentIndex: newIndex, errors };
       }
 
       if (key.length !== 1) return s;
@@ -98,10 +62,15 @@ export function useTypingTest(difficulty: Difficulty, timerMode: TimerMode) {
       if (!expected) return s;
 
       const errors = new Set(s.errors);
-      if (key !== expected) errors.add(s.currentIndex);
+      if (key !== expected) {
+        errors.add(s.currentIndex);
+      } else {
+        // Si la letra es correcta, eliminar cualquier error en esta posición
+        errors.delete(s.currentIndex);
+      }
 
       const nextIndex = s.currentIndex + 1;
-      const finished = s.timerMode === "text" && nextIndex >= s.passage.length;
+      const finished = nextIndex >= s.passage.length;
 
       return {
         ...s,
